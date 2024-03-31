@@ -5,7 +5,7 @@ import logger from '../../utils/logger';
 
 export const logWebhookData = (req: Request, res: Response) => {
     try {
-
+        
         logger.info('Received webhook data: %o', req.body);
         res.status(200).send('Webhook data logged successfully');
     } catch (error) {
