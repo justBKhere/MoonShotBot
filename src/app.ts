@@ -34,7 +34,7 @@ app.use(json());
 // Routes
 app.use("/api/liveness_check", pingRouter);
 app.use("/api/test-error", errorTestRoutes);
-app.use("/api/webhook", webhookRoutes);
+app.use("/api", webhookRoutes);
 // Error Handling Middleware
 app.use(customErrorHandler);
 
