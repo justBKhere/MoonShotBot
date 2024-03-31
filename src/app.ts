@@ -7,7 +7,7 @@ import { json } from "body-parser";
 import pingRouter from "./api/routes/ping";
 import { customErrorHandler } from "./api/middlewares/errorHandler";
 import errorTestRoutes from "./api/routes/Tests/errorTestRoutes";
-
+import webhookRoutes from "./api/routes/webhookRoutes";
 require("dotenv").config();
 
 const app: Application = express();
@@ -34,7 +34,7 @@ app.use(json());
 // Routes
 app.use("/api/liveness_check", pingRouter);
 app.use("/api/test-error", errorTestRoutes);
-
+app.use("/api/webhook", webhookRoutes);
 // Error Handling Middleware
 app.use(customErrorHandler);
 
