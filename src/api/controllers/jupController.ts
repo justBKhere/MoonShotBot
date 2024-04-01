@@ -63,7 +63,7 @@ async function executeTransaction(transaction: any, connection: Connection) {
 
 
 
-async function completeTransactionSequence( inputMint: string, outputMint: string, amount: number, slippageBps: number) {
+export async function completeTransactionSequence( inputMint: string, outputMint: string, amount: number, slippageBps: number) {
     const wallet = createWalletFromPrivateKey(process.env.PRIVATE_KEY || '');
     const quote = await getQuote(inputMint, outputMint, amount, slippageBps);
     console.log("quote", quote);
@@ -82,5 +82,5 @@ const outputMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const amount = 1;
 const slippageBps = 10;
 
-completeTransactionSequence(inputMint, outputMint, amount, slippageBps);
+//completeTransactionSequence(inputMint, outputMint, amount, slippageBps);
 
