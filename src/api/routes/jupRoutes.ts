@@ -5,13 +5,14 @@ const router = Router();
 
 router.get('/get-quote', async (req: Request, res: Response) => {
   const { inputMint, outputMint, amount, slippageBps } = req.body;
-  const quoteResponse = await getQuote(inputMint, outputMint, Number(amount), Number(slippageBps));
+  const quoteResponse = await getQuote(inputMint, outputMint, amount, Number(slippageBps));
   res.status(200).json(quoteResponse);
 });
 
+
 router.post('/complete-transaction-sequence', async (req: Request, res: Response) => {
   const { inputMint, outputMint, amount, slippageBps } = req.body;
-  const transactionResponse = await completeTransactionSequence(inputMint, outputMint, Number(amount), Number(slippageBps));
+  const transactionResponse = await completeTransactionSequence(inputMint, outputMint, amount, Number(slippageBps));
   res.status(200).json(transactionResponse);
 }); 
 

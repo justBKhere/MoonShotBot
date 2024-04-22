@@ -3,6 +3,6 @@ import { logWebhookData } from '../controllers/webHookListener';
 
 const router = Router();
 
-router.post('/webhook', logWebhookData);
+router.post('/', logWebhookData);
 
 export default router;
