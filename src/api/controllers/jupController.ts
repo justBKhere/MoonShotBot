@@ -3,7 +3,7 @@ import fetch from 'cross-fetch';
 import { Wallet } from '@project-serum/anchor';
 import bs58 from 'bs58';
 
-// It is recommended that you use your own RPC endpoint.
+// It is rec    ommended that you use your own RPC endpoint.
 // This RPC endpoint is only for demonstration purposes so that this example will run.
 const connection = new Connection('https://rpc.shyft.to?api_key=czbyQ5tp0t4lPp3B');
 
@@ -16,6 +16,7 @@ function createWalletFromPrivateKey(privateKey: string): Wallet {
 }
 
 export async function getQuote(inputMint: string, outputMint: string, amount: string, slippageBps: number) {
+    console.log
     const response = await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${slippageBps}`);
     const quoteResponse = await response.json();
     return quoteResponse;
@@ -35,10 +36,13 @@ async function getSwapTransaction(quoteResponse: any, userPublicKey: string, wra
                 quoteResponse,
                 userPublicKey,
                 wrapAndUnwrapSol,
-                feeAccount
+                feeAccount,
+                prioritizationFeeLamports: 'auto'
             })
         })
     ).json();
+
+    console.log(swapTransaction);
     return swapTransaction;
 }
 
@@ -58,6 +62,7 @@ async function processSwapTransaction(swapTransaction: string, wallet: Wallet) {
             console.log("Sending transaction");
            const signature = await signAndSendTransactionRaw(connection, transaction, [wallet.payer]);
            console.log("signature", signature);
+           return signature;
    /* const simulation = await connection.simulateTransaction(transaction);
     console.log("simulation", simulation);
          return simulation; // Transaction was successful*/
@@ -106,26 +111,38 @@ async function sendTransactionWithRetry(transaction: Transaction, senderWallet: 
     }
 }
 export async function signAndSendTransactionRaw(
-  connection: Connection,
-  transaction: Transaction | VersionedTransaction,
-  signers: Array<Signer>
+    connection: Connection,
+    transaction: Transaction | VersionedTransaction,
+    signers: Array<Signer>
 ): Promise<string> {
-  try {
-    let signature: string;
-    if (transaction instanceof VersionedTransaction) {
-        transaction.sign(signers);
-      signature = await connection.sendRawTransaction(transaction.serialize());
-    } else {
-      transaction.partialSign(...signers);
-      signature = await connection.sendRawTransaction(
-        transaction.serialize({ requireAllSignatures: false })
-      );
+    try {
+        let signature: string;
+        if (transaction instanceof VersionedTransaction) {
+            transaction.sign(signers);
+            signature = await connection.sendRawTransaction(transaction.serialize(), {
+                skipPreflight: true,
+                preflightCommitment: 'finalized',
+                maxRetries: 3
+            });
+        } else {
+            transaction.partialSign(...signers);
+            signature = await connection.sendRawTransaction(
+                transaction.serialize({ requireAllSignatures: false })
+            );
+        }
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+
+        if (!confirmation.value.err) {
+          // Transaction was confirmed, return signature
+          return signature; 
+        } else {
+          // Transaction failed, throw error
+          throw new Error("Transaction failed: " + signature); 
+        }
+    } catch (error) {
+        console.error("Error signing and sending transaction:", error);
+        throw error;
     }
-    return signature;
-  } catch (error) {
-    console.error("Error signing and sending transaction:", error);
-    throw error;
-  }
 }
   
 export function getRawTransaction(encodedTransaction: string): Transaction | VersionedTransaction|null {
@@ -141,15 +158,36 @@ export function getRawTransaction(encodedTransaction: string): Transaction | Ver
     }
 }
 
-export async function completeTransactionSequence( inputMint: string, outputMint: string, amount: string, slippageBps: number) {
-    const wallet = createWalletFromPrivateKey(process.env.PRIVATE_KEY || '');
-    const quote = await getQuote(inputMint, outputMint, amount, slippageBps);
-   // console.log("quote", quote);
-   // console.log("routePlan", quote);
-    const swapTransaction = await getSwapTransaction(quote, wallet.publicKey.toBase58(), true);
-    //console.log("swapTransaction", swapTransaction);
+/**
+ * Executes a complete transaction sequence.
+ * @param inputMint - The input mint for the transaction.
+ * @param outputMint - The output mint for the transaction.
+ * @param amount - The amount to be swapped.
+ * @param slippageBps - The slippage basis points for the transaction.
+ * @returns The signature of the processed swap transaction.
+ */
+export async function completeTransactionSequence(
+inputMint: string,
+outputMint: string,
+amount: string,
+slippageBps: number
+): Promise<string> {
+const privateKey = process.env.PRIVATE_KEY;
+if (!privateKey) {
+throw new Error('PRIVATE_KEY not set');
+}
 
-    processSwapTransaction(swapTransaction.swapTransaction, wallet);
+const wallet = createWalletFromPrivateKey(privateKey);
+const quoteResponse = await getQuote(inputMint, outputMint, amount, slippageBps);
+const swapTransactionResponse = await getSwapTransaction(quoteResponse, wallet.publicKey.toBase58(), true);
+
+try {
+const signature = await processSwapTransaction(swapTransactionResponse.swapTransaction, wallet);
+return signature!;
+} catch (error) {
+console.error("Error processing swap transaction:", error);
+throw error;
+}
 }
 
 

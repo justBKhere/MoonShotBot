@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { logWebhookData } from '../controllers/webHookListener';
+import { executeWebhook } from '../controllers/webHookListener';
 
 const router = Router();
 
-router.post('/', logWebhookData);
+router.post('/', executeWebhook);
 
 export default router;
